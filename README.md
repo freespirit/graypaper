@@ -1,3 +1,8 @@
+# Fork
+The sole purpose of this fork is to change the colors of the font and the background to make the resulting pdf easier on 
+the eyes (for me, personally) - black foreground, white background.
+
+---
 # Graypaper: The JAM Specification
 
 The description and formal specification of the Jam protocol, a potential successor to the Polkadot Relay chain.
