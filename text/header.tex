@@ -19,10 +19,13 @@ $P$ is thus defined as being the mapping from one block header to its parent blo
 
 We only require implementations to store headers of ancestors which were authored in the previous $\mathsf{L} = $ 24 hours of any block $\mathbf{B}$ they wish to validate.
 
-The extrinsic hash is the hash of the block's extrinsic data. Given any block $\mathbf{B} = (\mathbf{H}, \mathbf{E})$, then formally:
-\begin{equation}
-  \mathbf{H}_x \in \H \,,\quad \mathbf{H}_x \equiv \mathcal{H}(\mathcal{E}(\mathbf{E}))
-\end{equation}
+The extrinsic hash is a Merkle commitment to the block's extrinsic data, taking care to allow for the possibility of reports to individually have their inclusion proven. Given any block $\mathbf{B} = (\mathbf{H}, \mathbf{E})$, then formally:
+\begin{align}
+  \mathbf{H}_x &\in \H \ ,\quad
+  \mathbf{H}_x \equiv \mathcal{H}(\se(\mathcal{H}^\#(\mathbf{a}))) \\
+  \where \mathbf{a} &= [\se_T(\xttickets), \se_P(\xtpreimages), \mathbf{g}, \se_A(\xtassurances), \se_D(\xtdisputes)] \\
+  \also \mathbf{g} &= \se(\var{[\se(\mathcal{H}(w), \se_4(t), \var{a}) \mid (w, t, a) \orderedin \xtguarantees]})
+\end{align}
 
 A block may only be regarded as valid once the time-slot index $\mathbf{H}_t$ is in the past. It is always strictly greater than that of its parent. Formally:
 \begin{equation}
@@ -48,7 +51,7 @@ All blocks have an associated public key to identify the author of the block. We
 
 If not $\none$, then the epoch marker specifies key and entropy relevant to the following epoch in case the ticket contest does not complete adequately (a very much unexpected eventuality). Similarly, the winning-tickets marker, if not $\none$, provides the series of 600 slot sealing ``tickets'' for the next epoch (see the next section). Finally, the offenders marker is the sequence of Ed25519 keys of newly misbehaving validators, to be fully explained in section \ref{sec:disputes}. Formally:
 \begin{equation}
-  \mathbf{H}_e \in \tuple{\H\ts\lseq\H_B\rseq_{\mathsf{V}}}\bm{?}\,,\quad
+  \mathbf{H}_e \in \tuple{\H\ts\H\ts\lseq\H_B\rseq_{\mathsf{V}}}\bm{?}\,,\quad
   \mathbf{H}_w \in \seq{\mathbb{C}} _{\mathsf{E}}\bm{?}\,,\quad
   \mathbf{H}_o \in \seq{\H_E}
 \end{equation}
