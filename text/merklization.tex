@@ -36,9 +36,9 @@ The state serialization is then defined as the dictionary built from the amalgam
     &&C(10) &\mapsto \se([\maybe{(w, \se_4(t))} \mid (w, t) \orderedin \rho]) \;, \\
     &&C(11) &\mapsto \se_4(\tau) \;, \\
     &&C(12) &\mapsto \se_4(\chi_m, \chi_a, \chi_v) \concat \se(\chi_\mathbf{g}) \;, \\
-    &&C(13) &\mapsto \se_4(\pi) \;, \\
-    &&C(14) &\mapsto \se([\var{i} \mid i \orderedin \ready]) \;, \\
-    &&C(15) &\mapsto \se([\var{i} \mid i \orderedin \accumulated]) \;, \\
+    &&C(13) &\mapsto \se([\se^\#_4(\mathbf{i}) \mid \mathbf{i} \orderedin \pi]) \;, \\
+    &&C(14) &\mapsto \se([\var{\mathbf{i}} \mid \mathbf{i} \orderedin \ready]) \;, \\
+    &&C(15) &\mapsto \se([\var{\mathbf{i}} \mid \mathbf{i} \orderedin \accumulated]) \;, \\
     \forall (s \mapsto \mathbf{a}) \in \delta: &&C(255, s) &\mapsto \mathbf{a}_c \concat \se_8(\mathbf{a}_b, \mathbf{a}_g, \mathbf{a}_m, \mathbf{a}_l) \concat \se_4(\mathbf{a}_i) \;, \\
     \forall (s \mapsto \mathbf{a}) \in \delta, (k \mapsto \mathbf{v}) \in \mathbf{a}_\mathbf{s}: &&C(s, \se_4(2^{32}-1) \frown k_{0\dots 28}) &\mapsto \mathbf{v} \;, \\
     \forall (s \mapsto \mathbf{a}) \in \delta, (h \mapsto \mathbf{p}) \in \mathbf{a}_\mathbf{p}: &&C(s, \se_4(2^{32}-2) \frown h_{1\dots 29}) &\mapsto \mathbf{p} \;, \\
@@ -76,7 +76,7 @@ Formally, we define the encoding functions $B$ and $L$:
   L&\colon\left\{\begin{aligned}
     (\H, \Y) &\to \mathbb{B}_{512}\\
     (k, v) &\mapsto \begin{cases}
-      [1, 0] \frown \text{bits}(\se_1(|v|))_{\dots6} \frown \text{bits}(k)_{\dots248} \frown \text{bits}(v) \frown [0, 0, \dots] &\when |v| \le 32\\
+      [1, 0] \frown \text{bits}(\se_1(|v|))_{2\dots} \frown \text{bits}(k)_{\dots248} \frown \text{bits}(v) \frown [0, 0, \dots] &\when |v| \le 32\\
       [1, 1, 0, 0, 0, 0, 0, 0] \frown \text{bits}(k)_{\dots248} \frown \text{bits}(\mathcal{H}(v)) &\otherwise
     \end{cases}
   \end{aligned}\right.
@@ -173,7 +173,7 @@ We define the constant-depth binary Merkle function as $\mathcal{M}$. We define 
   \label{eq:constantdepthsubtreemerkleleafpage}
   \mathcal{L}_x&\colon \left\{\begin{aligned}
     (\seq{\Y}, \N_{|\mathbf{v}|}, \Y \to \H) &\to \seq{\H}\\
-    (\mathbf{v}, i, H) &\mapsto [H(\token{\$leaf} \concat l) \mid l \orderedin \mathbf{s}_{2^xi \dots \min(2^xi+2^x, |\mathbf{s}|)}]
+    (\mathbf{v}, i, H) &\mapsto [H(\token{\$leaf} \concat l) \mid l \orderedin \mathbf{v}_{2^xi \dots \min(2^xi+2^x, |\mathbf{v}|)}]
   \end{aligned}\right.
 \end{align}
 
@@ -197,11 +197,11 @@ For justifications and Merkle root calculations, a constancy preprocessor functi
 
 \subsection{Merkle Mountain Ranges}\label{sec:mmr}
 
-The Merkle mountain range (\textsc{mmr}) is an append-only cryptographic data structure which yields a commitment to a sequence of values. Appending to an \textsc{mmr} and proof of inclusion of some item within it are both $O(\log(N))$ in time and space for the size of the set.
+The Merkle Mountain Range (\textsc{mmr}) is an append-only cryptographic data structure which yields a commitment to a sequence of values. Appending to an \textsc{mmr} and proof of inclusion of some item within it are both $O(\log(N))$ in time and space for the size of the set.
 
-We define a Merkle mountain range as being within the set $\seq{\H?}$, a sequence of peaks, each peak the root of a Merkle tree containing $2^i$ items where $i$ is the index in the sequence. Since we support set sizes which are not always powers-of-two-minus-one, some peaks may be empty, $\none$ rather than a Merkle root.
+We define a Merkle Mountain Range as being within the set $\seq{\H?}$, a sequence of peaks, each peak the root of a Merkle tree containing $2^i$ items where $i$ is the index in the sequence. Since we support set sizes which are not always powers-of-two-minus-one, some peaks may be empty, $\none$ rather than a Merkle root.
 
-Since the sequence of hashes is somewhat unwieldy as a commitment, Merkle mountain ranges are themselves generally hashed before being published. Hashing them removes the possibility of further appending so the range itself is kept on the system which needs to generate future proofs.
+Since the sequence of hashes is somewhat unwieldy as a commitment, Merkle Mountain Ranges are themselves generally hashed before being published. Hashing them removes the possibility of further appending so the range itself is kept on the system which needs to generate future proofs.
 
 \newcommand*{\deffunc}[1]{\left\{\,\begin{aligned}#1\vphantom{x'_i}\end{aligned}\right.}
 
@@ -243,7 +243,7 @@ We define the \textsc{mmr} super-peak function as $\mathcal{M}_R$:
     \mathbf{b} &\mapsto \begin{cases}
       \H_0 &\when |\mathbf{h}| = 0\\
       \mathbf{h}_0 &\when |\mathbf{h}| = 1\\
-      \mathcal{H}_K(\token{\$node} \concat \mathcal{M}_R(\mathbf{h}_{\dots|\mathbf{b}|-1}) \concat \mathbf{h}_{|\mathbf{b}|-1}) &\otherwise \\
+      \mathcal{H}_K(\token{\$peak} \concat \mathcal{M}_R(\mathbf{h}_{\dots|\mathbf{h}|-1}) \concat \mathbf{h}_{|\mathbf{h}|-1}) &\otherwise \\
       \multicolumn{2}{l}{\where \mathbf{h} = \sq{h \mid h \orderedin \mathbf{b}, h \ne \none}}
     \end{cases}
   }
