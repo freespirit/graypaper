@@ -10,7 +10,7 @@ xelatex graypaper
 xelatex graypaper
 ```
 ---
-# Graypaper: The JAM Specification
+# Gray Paper: The JAM Specification
 
 The description and formal specification of the Jam protocol, a potential successor to the Polkadot Relay chain.
 
