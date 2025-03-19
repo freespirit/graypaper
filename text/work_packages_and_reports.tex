@@ -70,11 +70,11 @@ We begin by defining a \emph{work-package}, of set $\mathbb{P}$, and its constit
   }
 \end{equation}
 
-A work item includes: $s$ the identifier of the service to which it relates, the code hash of the service at the time of reporting $c$ (whose preimage must be available from the perspective of the lookup anchor block), a payload blob $\mathbf{y}$, gas limits for Refinement and Accumulation $g$ \& $a$, and the three elements of its manifest, a sequence of imported data segments $\wi¬importsegments$ which identify a prior exported segment through an index and the identity of an exporting work-package, $\wi¬extrinsics$, a sequence of blob hashes and lengths to be introduced in this block (and which we assume the validator knows) and $\wi¬exportsegments$ the number of data segments exported by this work item.
+A work item includes: $s$ the identifier of the service to which it relates, the code hash of the service at the time of reporting $\wi¬codehash$ (whose preimage must be available from the perspective of the lookup anchor block), a payload blob $\mathbf{y}$, gas limits for Refinement and Accumulation $g$ \& $a$, and the three elements of its manifest, a sequence of imported data segments $\wi¬importsegments$ which identify a prior exported segment through an index and the identity of an exporting work-package, $\wi¬extrinsics$, a sequence of blob hashes and lengths to be introduced in this block (and which we assume the validator knows) and $\wi¬exportsegments$ the number of data segments exported by this work item.
 \begin{equation}\label{eq:workitem}
   \mathbb{I} \equiv \tuple{\begin{aligned}
     &\isa{s}{\N_S},
-    \isa{c}{\H},
+    \isa{\wi¬codehash}{\H},
     \isa{\mathbf{y}}{\Y},
     \isa{g}{\N_G},
     \isa{a}{\N_G},
@@ -84,13 +84,18 @@ A work item includes: $s$ the identifier of the service to which it relates, the
   \end{aligned}}
 \end{equation}
 
+%TODO: use r instead of g for refinement gas limit.
+
 Note that an imported data segment's work-package is identified through the union of sets $\H$ and a tagged variant $\H^\boxplus$. A value drawn from the regular $\H$ implies the hash value is of the segment-root containing the export, whereas a value drawn from $\H^\boxplus$ implies the hash value is the hash of the exporting work-package. In the latter case it must be converted into a segment-root by the guarantor and this conversion reported in the work-report for on-chain validation.
 
-We limit both the total number of exported items and the total number of imported items to $\mathsf{W}_M = 2^{11}$:
+We limit both the total number of exported items and the total number of imported items to $\mathsf{W}_M = 3072$, and the total number of extrinsics to $\mathsf{T} = 128$:
 \begin{equation}
-  \forall \wpX \in \mathbb{P}:
-  \sum_{\wiX \in \wpX_\wp¬workitems} \wiX_\wi¬exportsegments \le \mathsf{W}_M \ \wedge\ 
-  \sum_{\wiX \in \wpX_\wp¬workitems} |\wiX_\wi¬importsegments| \le \mathsf{W}_M
+  \!\!\!\!\begin{aligned}
+    &\forall \wpX \in \mathbb{P}: \\
+    &\ \sum_{\wiX \in \wpX_\wp¬workitems} \wiX_\wi¬exportsegments \le \mathsf{W}_M \ \wedge\ 
+    \sum_{\wiX \in \wpX_\wp¬workitems} |\wiX_\wi¬importsegments| \le \mathsf{W}_M \ \wedge\ 
+    \sum_{\wiX \in \wpX_\wp¬workitems} |\wiX_\wi¬extrinsics| \le \mathsf{T}
+  \end{aligned}
 \end{equation}
 
 We make an assumption that the preimage to each extrinsic hash in each work-item is known by the guarantor. In general this data will be passed to the guarantor alongside the work-package.
@@ -116,11 +121,19 @@ We limit the sums of each of the two gas limits to be at most the maximum gas al
 
 %The implication of equation \ref{eq:checkextractsize} is that we have access to the preimage of all extrinsic data. For guaranteeing, this implies the work-package author probably submits the preimages alongside the work-package itself. For auditing, the extrinsic preimages may be reconstructed in the same manner as the work-package. Both are described later.
 
-Given the result $o$ of some work-item, we define the item-to-result function $\itemtoresult$ as:
+Given the resultant datum $d$ of some work-item, we define the item-to-result function $\itemtoresult$ as:
 \begin{equation}
   \itemtoresult\colon\left\{\begin{aligned}
-    (\mathbb{I}, \Y \cup \mathbb{J}) &\to \mathbb{L}\\
-    ((s, c, \mathbf{y}, a), \mathbf{o}) &\mapsto (s, c, \mathcal{H}(\mathbf{y}), \is{g}{a}, \mathbf{o})
+    (\mathbb{I}, \Y \cup \mathbb{J}, \N_G) &\to \mathbb{L}\\
+    \tup{\tup{\begin{aligned}
+      &s, c, \mathbf{y},\\
+      &a, e, \mathbf{i}, \mathbf{x}
+    \end{aligned}
+    }, \wl¬data, u} &\mapsto \tup{\begin{aligned}
+      s, c, \is{\wl¬payloadhash}{\mathcal{H}(\mathbf{y})}, \is{g}{a}, \wl¬data, u,\\
+      \is{i}{|\mathbf{i}|}, e, \is{x}{|\mathbf{x}|}, \is{z}{\sum_{(h, z) \in \mathbf{x}} z}
+    \end{aligned}
+    }
   \end{aligned}\right.
 \end{equation}
 
@@ -128,8 +141,8 @@ We define the work-package's implied authorizer as $\wpX_\wp¬authorizer$, the h
 \begin{equation}
   \forall \wpX \in \mathbb{P}: \left\{\,\begin{aligned}
     \wpX_\wp¬authorizer &\equiv \mathcal{H}(\wpX_\wp¬authcodehash \concat \wpX_\wp¬authparam) \\
-    \wpX_\wp¬authcode &\equiv \Lambda(\delta[\wpX_\wp¬authcodehost], (\wpX_\wp¬context)_t, \wpX_\wp¬authcodehash) \\
-    \wpX_\wp¬authcode &\in \Y
+    \se(\var{\wpX_\wp¬metadata}, \wpX_\wp¬authcode) &\equiv \Lambda(\delta[\wpX_\wp¬authcodehost], (\wpX_\wp¬context)_t, \wpX_\wp¬authcodehash) \\
+    (\wpX_\wp¬metadata, \wpX_\wp¬authcode) &\in (\Y, \Y)
   \end{aligned}\right.
 \end{equation}
 
@@ -157,40 +170,35 @@ We define the paged-proofs function $\pagedproofs$ which accepts a series of exp
 
 \subsection{Computation of Work Results}\label{sec:computeworkresult}
 
-% TODO: Pass in entire Work Package and provide host-call to extract other Work Item payloads, imports and extrinsics.
-
-We now come to the work result computation function $\Xi$. This forms the basis for all utilization of cores on \Jam. It accepts some work-package $\wpX$ for some nominated core $c$ and results in either an error $\error$ or the work result and series of exported segments. This function is deterministic and requires only that it be evaluated within eight epochs of a recently finalized block thanks to the historical lookup functionality. It can thus comfortably be evaluated by any node within the auditing period, even allowing for practicalities of imperfect synchronization.
-
-Formally:
+We now come to the work result computation function $\Xi$. This forms the basis for all utilization of cores on \Jam. It accepts some work-package $\wpX$ for some nominated core $c$ and results in either an error $\error$ or the work result and series of exported segments. This function is deterministic and requires only that it be evaluated within eight epochs of a recently finalized block thanks to the historical lookup functionality. It can thus comfortably be evaluated by any node within the auditing period, even allowing for practicalities of imperfect synchronization. Formally:
 \begin{equation}\label{eq:workresultfunction}
-  \!\!\Xi \colon \left\{\begin{aligned}
+  \Xi \colon \left\{\begin{aligned}
     (\mathbb{P}, \N_\mathsf{C}) &\to \mathbb{W} \\
     (\wpX, c) &\mapsto \begin{cases}
         \error &\when \mathbf{o} \not\in \Y \\
-        \tup{s, \is{x}{\wpX_\wp¬context}, c, \is{a}{\wpX_\wp¬authorizer}, \mathbf{o}, \mathbf{l}, \mathbf{r}} \!\!\!\!\!&\otherwise
+        \tup{s, \is{x}{\wpX_\wp¬context}, c, \is{a}{\wpX_\wp¬authorizer}, \mathbf{o}, \mathbf{l}, \mathbf{r}, g} &\otherwise
     \end{cases}
-  \end{aligned}\right.\!\!\!\!\!\!\!
+  \end{aligned}\right.
 \end{equation}
+% TODO: Decide on whether context is bold or not.
 
 Where:
 \begin{align*}
   \keys{\mathbf{l}} \equiv \,&\{ h \mid w \in p_\mathbf{w}, (h^\boxplus, n) \in w_\mathbf{i} \} \ ,\quad|\mathbf{l}| \le 8\\
-  \mathbf{o} = \,&\Psi_I(\wpX, c) \\
+  (\mathbf{o}, g) = \,&\Psi_I(\wpX, c) \\
   (\mathbf{r}, \overline{\mathbf{e}}) = \,&\transpose[
-    (\itemtoresult(\wpX_\wp¬workitems[j], r), \mathbf{e})
+    (\itemtoresult(\wpX_\wp¬workitems[j], r, u), \mathbf{e})
     \mid
-    (r, \mathbf{e}) = \countupexports(\wpX, j),\,
+    (r, u, \mathbf{e}) = \countupexports(\wpX, j),\,
     j \orderedin \N_{|\wpX_\wp¬workitems|}
   ] \\
   \countupexports(\wpX, j) \equiv \,&\begin{cases}
-    (r, \mathbf{e}) &\when |\mathbf{e}| = w_e \\
-    (r, [\mathbb{G}_0, \mathbb{G}_0, \dots]_{\dots w_e}) &\otherwhen r \not\in \mathbb{Y} \\
-    (\badexports, [\mathbb{G}_0, \mathbb{G}_0, \dots]_{\dots w_e}) &\otherwise \\
-    \multicolumn{2}{l}{\where (r, \mathbf{e}) = \Psi_R\left(\,\begin{aligned}
-      &\wiX_c, \wiX_g, \wiX_s, h, \wiX_\mathbf{y}, \wpX_\wp¬context,\\[2pt]
-      &\wpX_\wp¬authorizer, \mathbf{o}, \importsegmentdata(w, \mathbf{l}), \extrinsicdata(w), \ell
-    \end{aligned}\,\right)
-    }\\
+    (r, u, \mathbf{e}) &\when |\mathbf{e}| = w_e \\
+    (r, u, [\mathbb{G}_0, \mathbb{G}_0, \dots]_{\dots w_e}) &\otherwhen r \not\in \mathbb{Y} \\
+    (\badexports, u, [\mathbb{G}_0, \mathbb{G}_0, \dots]_{\dots w_e}) &\otherwise \\
+    \multicolumn{2}{l}{\where (r, \mathbf{e}, u) = \Psi_R(
+      j, \wpX, \mathbf{o}, \importsegmentdata(w, \mathbf{l}), \ell
+    )}\\
     \multicolumn{2}{l}{\also h = \mathcal{H}(\wpX)\,,\; w = \wpX_\wp¬workitems[j]\,,\; \ell = \sum_{k < j}\wpX_\wp¬workitems[k]_\wi¬exportsegments}
   \end{cases}
 \end{align*}
@@ -245,7 +253,7 @@ Also of note is the lack of length prefixes: only the Merkle paths for the justi
 
 The Is-Authorized logic it references must be executed first in order to ensure that the work-package warrants the needed core-time. Next, the guarantor should ensure that all segment-tree roots which form imported segment commitments are known and have not expired. Finally, the guarantor should ensure that they can fetch all preimage data referenced as the commitments of extrinsic segments.
 
-Once done, then imported segments must be reconstructed. This process may in fact be lazy as the Refine function makes no usage of the data until the \emph{import} host-call is made. Fetching generally implies that, for each imported segment, erasure-coded chunks are retrieved from enough unique validators (342, including the guarantor) and is described in more depth in appendix \ref{sec:erasurecoding}. (Since we specify systematic erasure-coding, its reconstruction is trivial in the case that the correct 342 validators are responsive.) Chunks must be fetched for both the data itself and for justification metadata which allows us to ensure that the data is correct.
+Once done, then imported segments must be reconstructed. This process may in fact be lazy as the Refine function makes no usage of the data until the \emph{fetch} host-call is made. Fetching generally implies that, for each imported segment, erasure-coded chunks are retrieved from enough unique validators (342, including the guarantor) and is described in more depth in appendix \ref{sec:erasurecoding}. (Since we specify systematic erasure-coding, its reconstruction is trivial in the case that the correct 342 validators are responsive.) Chunks must be fetched for both the data itself and for justification metadata which allows us to ensure that the data is correct.
 
 Validators, in their role as availability assurers, should index such chunks according to the index of the segments-tree whose reconstruction they facilitate. Since the data for segment chunks is so small at 12 octets, fixed communications costs should be kept to a bare minimum. A good network protocol (out of scope at present) will allow guarantors to specify only the segments-tree root and index together with a Boolean to indicate whether the proof chunk need be supplied. Since we assume at least 341 other validators are online and benevolent, we can assume that the guarantor can compute $\importsegmentdata$ and $\justifysegmentdata$ above with confidence, based on the general availability of data committed to with $\mathbf{s}^\clubsuit$, which is specified below.
 
