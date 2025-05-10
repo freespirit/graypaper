@@ -103,6 +103,7 @@
 \newcommand*{\error}{\nabla}
 \newcommand*{\panic}{\lightning}
 \newcommand*{\badexports}{\circledcirc}
+\newcommand*{\oversize}{\circleddash}
 \newcommand*{\host}{\hbar}
 \newcommand*{\halt}{\blacksquare}
 \newcommand*{\fault}{\text{\raisebox{6pt}{\rotatebox{180}{\textsf{F}}}}}
@@ -148,6 +149,7 @@
 \newcommand*{\ang}[1]{\langle#1\rangle}
 
 % GP terms
+\renewcommand*{\hash}{\mathcal{H}}
 \newcommand*{\goodset}{\psi_\mathbf{g}}
 \newcommand*{\badset}{\psi_\mathbf{b}}
 \newcommand*{\wonkyset}{\psi_\mathbf{w}}
@@ -158,41 +160,80 @@
 \newcommand*{\xtassurances}{\mathbf{E}_A}
 \newcommand*{\xtpreimages}{\mathbf{E}_P}
 
+% TODO: Use non-prefixed items for common fields:
+\newcommand*{\¬gaslimit}{g}
+\newcommand*{\¬gasused}{u}
+\newcommand*{\¬service}{s}
+\newcommand*{\¬payloadhash}{y}
+\newcommand*{\¬payload}{\mathbf{y}}
+\newcommand*{\¬result}{\mathbf{d}}
+\newcommand*{\¬authtrace}{\mathbf{o}}
+\newcommand*{\¬core}{c} % O/L ¬codehash
+\newcommand*{\¬authorizer}{a} % O/L ¬accgaslimit
+\newcommand*{\¬codehash}{h} % O/L \ot¬packagehash
+\newcommand*{\¬exportcount}{e}
+\newcommand*{\¬importcount}{i}
+
 \newcommand*{\wp¬authtoken}{\mathbf{j}}
 \newcommand*{\wp¬authcodehost}{h}
 \newcommand*{\wp¬authcodehash}{u}
-\newcommand*{\wp¬authparam}{\mathbf{p}}
+\newcommand*{\wp¬authconfig}{\mathbf{p}}
 \newcommand*{\wp¬context}{\mathbf{x}} % Consider rename to \mathbf{c}
 \newcommand*{\wp¬workitems}{\mathbf{w}}
 
-\newcommand*{\wp¬authorizer}{a}
+\newcommand*{\wp¬authorizer}{\¬authorizer}
 \newcommand*{\wp¬authcode}{\mathbf{c}}
 \newcommand*{\wp¬metadata}{\mathbf{m}}
 
+\newcommand*{\wi¬service}{\¬service}
+\newcommand*{\wi¬codehash}{\¬codehash}
+\newcommand*{\wi¬payload}{\¬payload}
+\newcommand*{\wi¬refgaslimit}{g} % O/L ¬gaslimit TODO: use r instead
+\newcommand*{\wi¬accgaslimit}{a} % O/L ¬authorizer
+\newcommand*{\wi¬exportcount}{\¬exportcount}
 \newcommand*{\wi¬importsegments}{\mathbf{i}}
 \newcommand*{\wi¬extrinsics}{\mathbf{x}}
-\newcommand*{\wi¬exportsegments}{e}
-\newcommand*{\wi¬codehash}{c}
 
+\newcommand*{\wr¬avspec}{s} % O/L ¬service TODO: make bold
+\newcommand*{\wr¬context}{x} % TODO: Consider renaming to \mathbf{c} and/or making bold, like package
+\newcommand*{\wr¬core}{\¬core}
+\newcommand*{\wr¬authorizer}{\¬authorizer}
 \newcommand*{\wr¬srlookup}{\mathbf{l}}
-\newcommand*{\wr¬authoutput}{\mathbf{o}} % TODO: Consider renaming to \mathbf{u} to free up \mathbf{o}
-\newcommand*{\wr¬results}{\mathbf{r}} % TODO: Consider renaming to avoid overloading \mathbf{r} reports vs results; maybe \mathbf{t} for results
+\newcommand*{\wr¬authtrace}{\¬authtrace} % TODO: Consider renaming to \mathbf{u} to free up \mathbf{o}
+\newcommand*{\wr¬digests}{\mathbf{r}} % TODO: Consider renaming to \mathbf{t}/{g} avoid overloading \mathbf{r} reports vs results; maybe \mathbf{t} for results
 \newcommand*{\wr¬authgasused}{g}
-
 % TODO: Standardize and fully check this:
 % p P: work Packages
 % w I: work Items
 % w W: work Reports
-% r L: work resulTs
+% r L: work resulTs -> Digests TODO: Rename d D
 % d: work output data (digest)
 % y: work payload
 
-\newcommand*{\wl¬data}{\mathbf{d}}
-\newcommand*{\wl¬payloadhash}{y}
+\newcommand*{\wl¬service}{\¬service}
+\newcommand*{\wl¬codehash}{\¬codehash}
+\newcommand*{\wl¬payloadhash}{\¬payloadhash}
+\newcommand*{\wl¬gaslimit}{\¬gaslimit}
+\newcommand*{\wl¬result}{\¬result}
+\newcommand*{\wl¬gasused}{\¬gasused}
+\newcommand*{\wl¬importcount}{\¬importcount}
+\newcommand*{\wl¬xtcount}{x}
+\newcommand*{\wl¬xtsize}{z}
+\newcommand*{\wl¬exportcount}{\¬exportcount}
+
+\newcommand*{\ot¬packagehash}{h} % O/L ¬codehash TODO: RENAME to k
+\newcommand*{\ot¬segroot}{e} % O/L ¬exprotcount TODO: RENAME to r?
+\newcommand*{\ot¬authorizer}{\¬authorizer}
+\newcommand*{\ot¬authtrace}{\¬authtrace}
+\newcommand*{\ot¬payloadhash}{\¬payloadhash}
+\newcommand*{\ot¬gaslimit}{\¬gaslimit}
+\newcommand*{\ot¬result}{\¬result}
 
 \newcommand*{\accumulated}{\xi}
 \newcommand*{\ready}{\vartheta}
 
+\newcommand*{\avspec}{\mathbb{S}}
+\newcommand*{\operandtuple}{\mathbb{O}}
 \newcommand*{\partialstate}{\mathbb{U}}
 \newcommand*{\defxfer}{\mathbb{T}}
 \newcommand*{\defxfers}{\seq{\defxfer}}

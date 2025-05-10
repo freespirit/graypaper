@@ -2,13 +2,14 @@
 \newcommand*{\opers}{O}
 \newcommand*{\servouts}{B}
 \newcommand*{\gasused}{U}
+\newcommand*{\fnprovide}{P}
 \newcommand*{\accumulatedcup}{\overbrace{\accumulated}}
 
 \section{Accumulation}\label{sec:accumulation}
 
 Accumulation may be defined as some function whose arguments are $\mathbf{W}$ and $\delta$ together with selected portions of (at times partially transitioned) state and which yields the posterior service state $\accountspostpreimage$ together with additional state elements $\iota'$, $\varphi'$ and $\chi'$.
 
-The proposition of accumulation is in fact quite simple: we merely wish to execute the \emph{Accumulate} logic of the service code of each of the services which has at least one work output, passing to it the work outputs and useful contextual information. However, there are three main complications. Firstly, we must define the execution environment of this logic and in particular the host functions available to it. Secondly, we must define the amount of gas to be allowed for each service's execution. Finally, we must determine the nature of transfers within Accumulate which, as we will see, leads to the need for a second entry-point, \emph{on-transfer}.
+The proposition of accumulation is in fact quite simple: we merely wish to execute the \emph{Accumulate} logic of the service code of each of the services which has at least one work-digest, passing to it relevant data from said digests together with useful contextual information. However, there are three main complications. Firstly, we must define the execution environment of this logic and in particular the host functions available to it. Secondly, we must define the amount of gas to be allowed for each service's execution. Finally, we must determine the nature of transfers within Accumulate which, as we will see, leads to the need for a second entry-point, \emph{on-transfer}.
 
 
 
@@ -120,13 +121,13 @@ We define the outer accumulation function $\Delta_+$ which transforms a gas-limi
   \Delta_+\colon\left\{\begin{aligned}
     &(\N_G, \seq{\mathbb{W}}, \partialstate, \dict{\N_S}{\N_G}) \to (\N, \partialstate, \defxfers, \servouts, \gasused) \\
     &(g, \mathbf{w}, \mathbf{o}, \mathbf{f}) \!\mapsto\! \begin{cases}
-      (0, \mathbf{o}, [], \{\}) &
+      (0, \mathbf{o}, [], \{\}, []) &
         \when i = 0 \\
       (i + j, \mathbf{o}', \mathbf{t}^* \!\!\concat \mathbf{t}, \mathbf{b}^* \!\cup \mathbf{b}, \mathbf{u}^* \!\!\concat \mathbf{u})\!\!\!\! &
         \text{o/w}\!\!\!\!\!\!\!\! \\
     \end{cases} \\
     &\quad\where i = \max(\N_{|\mathbf{w}| + 1}): \sum_{w \in \mathbf{w}_{\dots i}}\sum_{r \in w_\mathbf{r}}(r_g) \le g \\
-    &\quad\also (\mathbf{u}^*, \mathbf{o}^*, \mathbf{t}^*, \mathbf{b}^*) = \Delta_*(\mathbf{o}, \mathbf{w}_{\dots i}, \mathbf{f}) \\
+    &\quad\also (\mathbf{o}^*, \mathbf{t}^*, \mathbf{b}^*, \mathbf{u}^*) = \Delta_*(\mathbf{o}, \mathbf{w}_{\dots i}, \mathbf{f}) \\
     &\quad\also (j, \mathbf{o}', \mathbf{t}, \mathbf{b}, \mathbf{u}) = \Delta_+(g - \!\!\!\!\sum_{(s, u) \in \mathbf{u}^*}\!\!\!\!u, \mathbf{w}_{i\dots}, \mathbf{o}^*, \{\})
   \end{aligned}\right.
 \end{equation}
@@ -135,13 +136,14 @@ We come to define the parallelized accumulation function $\Delta_*$ which, with 
 \begin{equation}
   \Delta_*\colon\left\{\;\begin{aligned}
     &(\partialstate, \seq{\mathbb{W}}, \dict{\N_S}{\N_G}) \to (\partialstate, \defxfers, \servouts, \gasused) \\
-    &(\mathbf{o}, \mathbf{w}, \mathbf{f}) \mapsto (((\mathbf{d} \cup \mathbf{n}) \setminus \mathbf{m}, \mathbf{i}', \mathbf{q}', \mathbf{x}'), \wideparen{\mathbf{t}}, \mathbf{b}, \mathbf{u})\!\!\!\!\!\!\\
+    &(\mathbf{o}, \mathbf{w}, \mathbf{f}) \mapsto ((\mathbf{d}', \mathbf{i}', \mathbf{q}', \mathbf{x}'), \wideparen{\mathbf{t}}, \mathbf{b}, \mathbf{u})\!\!\!\!\!\!\\
     &\text{where:}\\
     &\ \begin{aligned}
       \mathbf{s} &= \{ \mathbf{r}_s \mid w \in \mathbf{w}, \mathbf{r} \in w_\mathbf{r} \} \cup \keys{\mathbf{f}} \\
       \mathbf{u} &= [(s, \Delta_1(\mathbf{o}, \mathbf{w}, \mathbf{f}, s)_u) \mid s \orderedin \mathbf{s}] \\
       \mathbf{b} &= \{ (s, b) \mid s \in \mathbf{s},\, b = \Delta_1(\mathbf{o}, \mathbf{w}, \mathbf{f}, s)_b,\, b \ne \none \} \\
       \mathbf{t} &= [\Delta_1(\mathbf{o}, \mathbf{w}, \mathbf{f}, s)_\mathbf{t} \mid s \orderedin \mathbf{s}] \\
+      \mathbf{d}' &= \fnprovide((\mathbf{d} \cup \mathbf{n}) \setminus \mathbf{m}, \bigcup_{s \in \mathbf{s}} \Delta_1(\mathbf{o}, \mathbf{w}, \mathbf{f}, s)_\mathbf{p}) \\
       &(\mathbf{d}, \mathbf{i}, \mathbf{q}, (m, a, v, \mathbf{z})) = \mathbf{o} \\
       \mathbf{x}' &= (\Delta_1(\mathbf{o}, \mathbf{w}, \mathbf{f}, m)_\mathbf{o})_\mathbf{x} \\
       \mathbf{i}' &= (\Delta_1(\mathbf{o}, \mathbf{w}, \mathbf{f}, v)_\mathbf{o})_\mathbf{i} \\
@@ -152,51 +154,85 @@ We come to define the parallelized accumulation function $\Delta_*$ which, with 
   \end{aligned}\right.
 \end{equation}
 
+And $\fnprovide$ is the preimage integration function, which transforms a dictionary of service states and a set of service/hash pairs into a new dictionary of service states. Preimage provisions into services which no longer exist or whose relevant request is dropped are disregarded:
+\begin{equation}
+  \fnprovide\colon\left\{\begin{aligned}
+    &(\dict{\N_S}{\mathbb{A}}, \{\tup{\N_S, \Y}\}) \to \dict{\N_S}{\mathbb{A}} \\
+    &(\mathbf{d}, \mathbf{p}) \mapsto \mathbf{d}'\;\where \mathbf{d}' = \mathbf{d}\;\text{except:} \\
+    &\quad\forall \tup{s, \mathbf{i}} \in \mathbf{p},\;
+      s \in \keys{\mathbf{d}},\;
+      \mathbf{d}[s]_\mathbf{l}[\hash(\mathbf{i}), |\mathbf{i}|] = \sq{}:\\
+    &\qquad \mathbf{d}'[s]_\mathbf{l}[\hash(\mathbf{i}), |\mathbf{i}|] = [\tau']\\
+    &\qquad \mathbf{d}'[s]_\mathbf{p}[\hash(\mathbf{i})] = \mathbf{i}
+    %\begin{aligned}
+    %  \tup{s, \mathbf{i}} \in \mathbf{p} \wedge
+    %  s \in \keys{\mathbf{d}}\;\wedge& \\
+    %  \mathbf{d}[s]_\mathbf{l}[\hash(\mathbf{i}), |\mathbf{i}|] = \sq{}&
+    %\end{aligned} &\Rightarrow
+    %\begin{aligned}
+    %  &\mathbf{d}'[s]_\mathbf{l}[\hash(\mathbf{i}), |\mathbf{i}|] = \tau' \wedge \\
+    %  &\mathbf{d}'[s]_\mathbf{p}[\hash{\mathbf{i}}] = \mathbf{i}
+    %\end{aligned} \\
+  \end{aligned}\right.
+\end{equation}
+
 We note that while forming the union of all altered, newly added service and newly removed indices, defined in the above context as $\keys{\mathbf{n}} \cup \mathbf{m}$, different services may not each contribute the same index for a new, altered or removed service. This cannot happen for the set of removed and altered services since the code hash of removable services has no known preimage and thus cannot execute itself to make an alteration. For new services this should also never happen since new indices are explicitly selected to avoid such conflicts. In the unlikely event it does happen, the block must be considered invalid.
 
 The single-service accumulation function, $\Delta_1$, transforms an initial state-context, sequence of work-reports and a service index into an alterations state-context, a sequence of \emph{transfers}, a possible accumulation-output and the actual \textsc{pvm} gas used. This function wrangles the work-items of a particular service from a set of work-reports and invokes \textsc{pvm} execution with said data:
-\begin{align}
-  &\mathbb{O} \equiv \tuple{
-    \isa{h}{\H},
-    \isa{e}{\H},
-    \isa{a}{\H},
-    \isa{\mathbf{o}}{\Y},
-    \isa{y}{\H},
-    \isa{\mathbf{d}}{\Y \cup \mathbb{J}}
+\begin{equation}
+  \operandtuple \equiv \tuple{
+    \isa{\ot¬packagehash}{\H},
+    \isa{\ot¬segroot}{\H},
+    \isa{\ot¬authorizer}{\H},
+    \isa{\ot¬payloadhash}{\H},
+    \isa{\ot¬gaslimit}{\N_G},
+    \isa{\ot¬result}{\Y \cup \mathbb{J}},
+    \isa{\ot¬authtrace}{\Y}
   }
-\end{align}
+\end{equation}
 \begin{align}
     &\Delta_1 \colon \left\{\;\begin{aligned}
     &\begin{aligned}
-      (\partialstate, \seq{\mathbb{W}}, \dict{\N_S}{\N_G}, \N_S) &\to \tup{
+      \tup{\begin{aligned}
+        &\partialstate, \seq{\mathbb{W}},\\
+        &\dict{\N_S}{\N_G}, \N_S
+      \end{aligned}}
+      &\to \tup{
         \begin{alignedat}{3}
-          \isa{\mathbf{o}&}{\partialstate}\,,\;\isa{&\mathbf{t}&}{\defxfers}\,,\\
-          \isa{b&}{\H\bm{?}}\,,\;\isa{&u&}{\N_G}
+          \isa{\mathbf{o}&}{\partialstate}\,,\;
+          \isa{&\mathbf{t}&}{\defxfers}\,,\;
+          \isa{b}{\H\bm{?}}\,,\\
+          \isa{u&}{\N_G}\,,\;
+          \isa{&\mathbf{p}&}{\{\tup{\N_S, \Y}\}}
         \end{alignedat}
       } \\
-      (\mathbf{o}, \mathbf{w}, \mathbf{f}, s) &\mapsto \Psi_A(\mathbf{o}, \tau', s, g, \mathbf{p})
+      (\mathbf{o}, \mathbf{w}, \mathbf{f}, s) &\mapsto \Psi_A(\mathbf{o}, \tau', s, g, \mathbf{i})
     \end{aligned} \\
     &\text{where:} \\
     &\ \begin{aligned}
-      g &= \subifnone(\mathbf{f}_s, 0) + \!\!\!\!\sum_{w \in \mathbf{w}, \mathbf{r} \in w_\mathbf{r} , \mathbf{r}_s = s}\!\!\!\!(\mathbf{r}_g) \\
-      \mathbf{p} &= \left[ \tup{\begin{alignedat}{5}
+      g &= \subifnone(\mathbf{f}_s, 0) + \!\!\!\!\sum_{w \in \mathbf{w}, \mathbf{r} \in w_\wr¬digests , \mathbf{r}_\wl¬service = s}\!\!\!\!(\mathbf{r}_g) \\
+      \mathbf{i} &= \left[ \tup{\begin{alignedat}{3}
         % TODO: Rename \mathbf{o} to something else, to allow mathbf{a} to become \mathbf{o}.
         % TODO: Rename k to h. Then 5 of the 6 fields keep their names.
-        \is{\mathbf{d}&}{\mathbf{r}_\wl¬data},
-        \is{&e&}{(w_s)_e},
-        \is{&\mathbf{o}&}{w_\wr¬authoutput},\\
-        \is{y&}{\mathbf{r}_\wl¬payloadhash},
-        \is{&h&}{(w_s)_h},
-        \is{&a&}{w_a}
+        \is{\ot¬result}{\mathbf{r}_\wl¬result},\,
+        \is{\ot¬gaslimit}{\mathbf{r}_\wl¬gaslimit},\,
+        \is{\ot¬payloadhash}{\mathbf{r}_\wl¬payloadhash},\,
+        \is{&\ot¬authtrace\;&}{w_\wr¬authtrace&},\\
+        \is{\ot¬segroot}{(w_\wr¬avspec)_e},\,
+        \is{\ot¬packagehash}{(w_\wr¬avspec)_h},\,
+        \is{&\ot¬authorizer\;&}{w_\wr¬authorizer&}
       \end{alignedat}}
       \,\middle\vert\ 
-      w \orderedin \mathbf{w}, \mathbf{r} \orderedin w_\mathbf{r}, \mathbf{r}_s = s
+      \begin{alignedat}{2}
+        w& \orderedin \mathbf{w},&\\
+        \mathbf{r}& \orderedin w_\wr¬digests,&\ \mathbf{r}_\wl¬service = s
+      \end{alignedat}
     \,\right]
     \end{aligned}
   \end{aligned}\right.\!\!\!\!
 \end{align}
 
-This introduces $\mathbb{O}$, the set of wrangled \emph{operand tuples}, used as an operand to the \textsc{pvm} Accumulation function $\Psi_A$. It also draws upon $g$, the gas limit implied by the work-reports and gas-privileges for $s$ and $\mathbf{p}$, a rephrasing of the work-items for $s$ within $\mathbf{w}$ into a sequence of operand tuples $\mathbb{O}$.
+This introduces $\operandtuple$, the set of wrangled \emph{operand tuples}, used as an operand to the \textsc{pvm} Accumulation function $\Psi_A$: work-items (together with associated data in their work-packages) are rephrased into a sequence of such operand tuples $\mathbf{i}$. It also draws upon $\wl¬gaslimit$, the gas limit implied by the work-reports and gas-privileges.
 
 \subsection{Deferred Transfers and State Integration}
 
@@ -207,7 +243,7 @@ Given the result of the top-level $\Delta_+$, we may define the posterior state 
   &(\chi', \accountspostacc, \iota', \varphi') \equiv \mathbf{o}
 \end{align}
 
-We compose $\mathbf{I}$, our accumulation statistics, which is a mapping from the service indices which were accumulated to the amount of gas used throughout accumulation and the number of work-reports accumulated. Formally:
+We compose $\mathbf{I}$, our accumulation statistics, which is a mapping from the service indices which were accumulated to the amount of gas used throughout accumulation and the number of work-items accumulated. Formally:
 \begin{align}
   &\mathbf{I} \in \dict{\N_S}{\tuple{\N_G, \N}} \\
   &\textstyle \mathbf{I} \equiv \left\{ s \mapsto \tup{\sum_{(s, u) \in \mathbf{u}}(u), \len{N(s)}} \;\middle\mid\; N(s) \ne [] \right\} \\
@@ -232,6 +268,7 @@ The second intermediate state $\accountspostxfer$ may then be defined with all t
 
 Furthermore we build the deferred transfers statistics value $\mathbf{X}$ as the number of transfers and the total gas used in transfer processing for each \emph{destination} service index. Formally:
 \begin{align}
+  \label{eq:deferredtransfers}
   &\mathbf{X} \in \dict{\N_S}{\tuple{\N, \N_G}} \\
   &\textstyle \mathbf{X} \equiv \left\{ d \mapsto \tup{\len{R(\mathbf{t}, d)}, u} \;\middle\vert\; \begin{aligned}
     R(\mathbf{t}, d) &\ne [],\\ \exists a: \mathbf{x}[d] &= (a, u)
@@ -268,7 +305,7 @@ After accumulation, we must integrate all preimages provided in the lookup extri
   R(\mathbf{d}, s, h, l) &\Leftrightarrow
   h \not\in \mathbf{d}[s]_\mathbf{p} \wedge
     \mathbf{d}[s]_\mathbf{l}[\tup{h, l}] = []\\
-  \forall \tup{s, \mathbf{p}} &\in \xtpreimages : R(\accountspre, s, \mathcal{H}(\mathbf{p}), |\mathbf{p}|)
+  \forall \tup{s, \mathbf{p}} &\in \xtpreimages : R(\accountspre, s, \hash(\mathbf{p}), |\mathbf{p}|)
 \end{align}
 
 We disregard, without prejudice, any preimages which due to the effects of accumulation are no longer useful. We define $\accountspostpreimage$ as the state after the integration of the still-relevant preimages:
@@ -276,10 +313,10 @@ We disregard, without prejudice, any preimages which due to the effects of accum
   \using \mathbf{P} = \{
     (s, \mathbf{p})
     \mid
-      \tup{s, \mathbf{p}} \in \xtpreimages, R(\accountspostxfer, s, \mathcal{H}(\mathbf{p}), |\mathbf{p}|)
+      \tup{s, \mathbf{p}} \in \xtpreimages, R(\accountspostxfer, s, \hash(\mathbf{p}), |\mathbf{p}|)
     \}\\
   \accountspostpreimage = \accountspostxfer \text{ ex. } \forall \tup{s\ts\mathbf{p}} \in \mathbf{P} : \left\{\,\begin{aligned}
-      \quad\accountspostpreimage[s]_\mathbf{p}[\mathcal{H}(\mathbf{p})] &= \mathbf{p} \\
-      \accountspostpreimage[s]_\mathbf{l}[\mathcal{H}(\mathbf{p}), |\mathbf{p}|] &= [\tau']
+      \quad\accountspostpreimage[s]_\mathbf{p}[\hash(\mathbf{p})] &= \mathbf{p} \\
+      \accountspostpreimage[s]_\mathbf{l}[\hash(\mathbf{p}), |\mathbf{p}|] &= [\tau']
     \end{aligned}\right.\!\!\!\!
 \end{align}

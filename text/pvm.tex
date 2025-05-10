@@ -1,4 +1,4 @@
-\section{Polka Virtual Machine}\label{sec:virtualmachine}
+\section{Polkadot Virtual Machine}\label{sec:virtualmachine}
 
 %TODO: First 64KB of memory is always inaccessible.
 
@@ -48,7 +48,7 @@
 We declare the general \textsc{pvm} function $\Psi$. We assume a single-step invocation function define $\Psi_1$ and define the full \textsc{pvm} recursively as a sequence of such mutations up until the single-step mutation results in a halting condition. We additionally define the function $\deblob$ which extracts the instruction data, opcode bitmask and dynamic jump table from a program blob:
 \begin{align}
   \Psi&\colon \left\{\begin{aligned}
-    (\Y, \N_R, \N_G, \regs, \ram) &\to (\{\halt, \panic, \oog\} \cup \{\fault\} \times \N_R \cup \{\host\} \times \N_R, \N_R, \Z_G, \regs, \ram)\\
+    (\Y, \N_R, \N_G, \regs, \ram) &\to (\{\halt, \panic, \oog\} \cup \{\fault, \host\} \times \N_R, \N_R, \Z_G, \regs, \ram)\\
     (\mathbf{p}, \imath, \gascounter, \registers, \mem) &\mapsto \begin{cases}
       \Psi(\mathbf{p}, \imath', \gascounter', \registers', \mem') &\when \varepsilon = \continue\\
       (\oog, \imath', \gascounter', \registers', \mem') &\when \gascounter' < 0\\
@@ -448,10 +448,10 @@ We assume the skip length $\ell$ is well-defined:
   \end{aligned}$\\ \mrule
   102&\token{count\_set\_bits\_64}&0&$\displaystyle\reg'_D = \sum_{i = 0}^{63}\bitsfunc{8}(\reg_A)_i$\\ \mrule
   103&\token{count\_set\_bits\_32}&0&$\displaystyle\reg'_D = \sum_{i = 0}^{31}\bitsfunc{4}(\reg_A \bmod 2^{32})_i$\\ \mrule
-  104&\token{leading\_zero\_bits\_64}&0&$\displaystyle\reg'_D = \max(n \in \N_{65})\ \where \sum_{i = 0}^{i < n} \bitsfunc{8}(\reg_A)_i = 0$\\ \mrule
-  105&\token{leading\_zero\_bits\_32}&0&$\displaystyle\reg'_D = \max(n \in \N_{33})\ \where \sum_{i = 0}^{i < n} \bitsfunc{4}(\reg_A \bmod 2^{32})_i = 0$\\ \mrule
-  106&\token{trailing\_zero\_bits\_64}&0&$\displaystyle\reg'_D = \max(n \in \N_{65})\ \where \sum_{i = 0}^{i < n} \bitsfunc{8}(\reg_A)_{63 - i} = 0$\\ \mrule
-  107&\token{trailing\_zero\_bits\_32}&0&$\displaystyle\reg'_D = \max(n \in \N_{33})\ \where \sum_{i = 0}^{i < n} \bitsfunc{4}(\reg_A \bmod 2^{32})_{31 - i} = 0$\\ \mrule
+  104&\token{leading\_zero\_bits\_64}&0&$\displaystyle\reg'_D = \max(n \in \N_{65})\ \where \sum_{i = 0}^{i < n} \revbitsfunc{8}(\reg_A)_i = 0$\\ \mrule
+  105&\token{leading\_zero\_bits\_32}&0&$\displaystyle\reg'_D = \max(n \in \N_{33})\ \where \sum_{i = 0}^{i < n} \revbitsfunc{4}(\reg_A \bmod 2^{32})_i = 0$\\ \mrule
+  106&\token{trailing\_zero\_bits\_64}&0&$\displaystyle\reg'_D = \max(n \in \N_{65})\ \where \sum_{i = 0}^{i < n} \bitsfunc{8}(\reg_A)_{i} = 0$\\ \mrule
+  107&\token{trailing\_zero\_bits\_32}&0&$\displaystyle\reg'_D = \max(n \in \N_{33})\ \where \sum_{i = 0}^{i < n} \bitsfunc{4}(\reg_A \bmod 2^{32})_{i} = 0$\\ \mrule
   108&\token{sign\_extend\_8}&0&$\reg'_D = \unsigned{\signedn{1}{\reg_A \bmod 2^8}}$\\ \mrule
   109&\token{sign\_extend\_16}&0&$\reg'_D = \unsigned{\signedn{2}{\reg_A \bmod 2^{16}}}$\\ \mrule
   110&\token{zero\_extend\_16}&0&$\reg'_D = \reg_A \bmod 2^{16}$\\ \mrule
@@ -758,11 +758,11 @@ We use both values of instruction-counter for the definition of $\Psi_H$ since i
 \subsection{Standard Program Initialization}\label{sec:standardprograminit}
 The software programs which will run in each of the four instances where the \textsc{pvm} is utilized in the main document have a very typical setup pattern characteristic of an output of a compiler and linker. This means that \textsc{ram} has sections for program-specific read-only data, read-write (heap) data and the stack. An adjunct to this, very typical of our usage patterns is an extra read-only section via which invocation-specific data may be passed (\ie arguments). It thus makes sense to define this properly in a single initializer function. These sections are quantized into \emph{major zones}, and one major zone is always left unallocated between sections in order to reduce accidental overrun. Sections are padded with zeroes to the nearest \textsc{pvm} memory page boundary.
 
-We thus define the standard program code format $\mathbf{p}$, which includes not only the instructions and jump table (previously represented by the term $\mathbf{c}$), but also information on the state of the \textsc{ram} at program start. Given some $\mathbf{p}$ which is appropriately encoded together with some argument data $\mathbf{a}$, we can define program code $\mathbf{c}$, registers $\registers$ and \textsc{ram} $\mem$ through the standard initialization decoder function $Y$:
+We thus define the standard program code format $\mathbf{p}$, which includes not only the instructions and jump table (previously represented by the term $\mathbf{c}$), but also information on the state of the \textsc{ram} at program start. Given program blob $\mathbf{p}$ and argument data $\mathbf{a}$, we can decode the program code $\mathbf{c}$, registers $\registers$, and \textsc{ram} $\mem$ by invoking the standard initialization function $Y(\mathbf{p}, \mathbf{a})$:
 \begin{equation}
 Y\colon\left\{\begin{aligned}
-  \Y &\to (\Y, \regs, \ram)? \\
-  \mathbf{p} &\mapsto \begin{cases}
+  (\Y, \Y_{:\mathsf{Z}_I}) &\to (\Y, \regs, \ram)? \\
+  (\mathbf{p}, \mathbf{a}) &\mapsto \begin{cases}
     (\mathbf{c}, \registers, \mem) &\when \exists! (\mathbf{c}, \mathbf{o}, \mathbf{w}, z, s) \text{ which satisfy equation \ref{eq:conditions}}\\
     \none &\otherwise
   \end{cases}
@@ -828,8 +828,8 @@ The four instances where the \textsc{pvm} is utilized each expect to be able to 
       \Y, \N_R, \N_G, \Y_{:\mathsf{Z}_I}, \Omega\langle X \rangle, X
     \right) &\to (\N_G, \Y \cup \{\panic, \oog\}, X)\\
     (\mathbf{p}, \imath, \gascounter, \mathbf{a}, f, \mathbf{x}) &\mapsto \begin{cases}
-      (0, \panic, \mathbf{x}) &\when Y(\mathbf{p}) = \none\\
-      R(\gascounter, \Psi_H(\mathbf{c}, \imath, \gascounter, \registers, \mem, f, \mathbf{x})) &\when Y(\mathbf{p}) = (\mathbf{c}, \registers, \mem)\\
+      (0, \panic, \mathbf{x}) &\when Y(\mathbf{p}, \mathbf{a}) = \none\\
+      R(\gascounter, \Psi_H(\mathbf{c}, \imath, \gascounter, \registers, \mem, f, \mathbf{x})) &\when Y(\mathbf{p}, \mathbf{a}) = (\mathbf{c}, \registers, \mem)\\
       \multicolumn{2}{l}{
         \quad \where R \colon (\gascounter, \tup{\begin{alignedat}{5}
           &\varepsilon,\, &&\imath',\, &&\gascounter',\\
@@ -837,8 +837,8 @@ The four instances where the \textsc{pvm} is utilized each expect to be able to 
         \end{alignedat}
         }) \mapsto \begin{cases}
           (u, \oog, \mathbf{x}') &\when \varepsilon = \oog \\
-          (u, \memory'_{\registers'_{7}\dots+\registers'_{8}}, \mathbf{x}') &\when \varepsilon = \halt \wedge \mathbb{N}_{\registers'_{7}\dots+\registers'_{8}} \subset \mathbb{V}_{\mem'} \\
-          (u, [], \mathbf{x}') &\when \varepsilon = \halt \wedge \mathbb{N}_{\registers'_{7}\dots+\registers'_{8}} \not\subset \mathbb{V}_{\mem'} \\
+          (u, \memory'_{\registers'_{7}\dots+\registers'_{8}}, \mathbf{x}') &\when \varepsilon = \halt \wedge \mathbb{N}_{\registers'_{7}\dots+\registers'_{8}} \subseteq \mathbb{V}_{\mem'} \\
+          (u, [], \mathbf{x}') &\when \varepsilon = \halt \wedge \mathbb{N}_{\registers'_{7}\dots+\registers'_{8}} \not\subseteq \mathbb{V}_{\mem'} \\
           (u, \panic, \mathbf{x}') &\otherwise \\
           \multicolumn{2}{l}{\quad \where u = \gascounter - \max(\gascounter', 0)}
         \end{cases}
